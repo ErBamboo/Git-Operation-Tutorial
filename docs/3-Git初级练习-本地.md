@@ -1,12 +1,12 @@
 # 单人练习
 > 目标
 > - 30 分钟内掌握 Git 的 6 个核心能力：
->  	- 建仓
->  	- 提交
-> 	- 看差异
->  	- 分支
->  	- 合并 / 冲突
->  	- 回退 / 找回
+>   - 建仓
+>   - 提交
+>   - 看差异
+>   - 分支
+>   - 合并 / 冲突
+>   - 回退 / 找回
 ---
 
 ## 0. 安全准备：单独建一个练习目录
@@ -38,15 +38,19 @@ git status
 - 目录刚变成一个 Git 仓库
 - 但还没有任何提交
 
+说明：
+
+- 下文只在需要创建或修改文件时单独标注 `PowerShell`
+- 其余 Git 命令默认直接在你常用的 Git 终端执行
+
 ---
 
 ## 1. 第一次提交：理解“工作区 → 暂存区 → 提交”
 
-创建一个文件，在`powshell`中输入以下命令
+创建一个文件，在 `PowerShell` 中输入以下命令：
 ```powershell
 "hello git" | Set-Content note.txt
 ```
-然后切换至 `git bash`
 ```bash
 git status
 ```
@@ -55,12 +59,22 @@ git status
 git add note.txt
 git status
 ```
+这里的 `note.txt` 表示“只暂存这个文件”，避免你在刚开始练习时一次性把别的改动也带进去。
+
 提交：
 ```bash
 git commit -m "feat: add note"
 git status
 git log --oneline --graph --decorate --all
 ```
+其中：
+
+- `-m` 表示直接在命令后面写提交说明
+- `--oneline` 表示每个提交压缩成一行
+- `--graph` 表示把分支和合并关系画出来
+- `--decorate` 表示显示分支名、`HEAD` 等引用
+- `--all` 表示把所有分支一起显示出来
+
 你现在应该看到：
 
 - `working tree clean`
@@ -76,11 +90,10 @@ git log --oneline --graph --decorate --all
 ## 2. 理解差异：工作区和暂存区不是一回事
 
 继续改文件：
-在`powshell`中输入以下命令
+在 `PowerShell` 中输入以下命令：
 ```powershell
 "line 2" | Add-Content note.txt
 ```
-切换至`git bash`
 ```bash
 git diff
 git status
@@ -91,6 +104,11 @@ git add note.txt
 git diff --cached
 git status
 ```
+这里要刻意区分：
+
+- `git diff` 默认看“工作区”和“暂存区”的差异
+- `git diff --cached` 中的 `--cached` 表示看“暂存区”和“最新提交”的差异
+
 提交：
 ```bash
 git commit -m "docs: update note"
@@ -106,15 +124,15 @@ git log --oneline --graph --decorate --all
 ## 3. 分支：理解“分支只是指针”
 
 创建功能分支：
-在`git bash`中输入以下命令
 ```bash
 git switch -c feature/theme
 ```
-切换至`powshell`
+这里的 `-c` 表示“创建并切换到新分支”；如果没有 `-c`，`git switch` 只负责切换，不负责创建。
+
+在 `PowerShell` 中写入一个新文件：
 ```powershell
 "blue" | Set-Content theme.txt
 ```
-再次切换回`git bash`
 ```bash
 git add theme.txt
 git commit -m "feat: add theme"
@@ -148,7 +166,7 @@ git log --oneline --graph --decorate --all
 ---
 
 ## 4. 冲突：理解 Git 为什么需要你做决定
-> 从本章开始，不再区分powershell和bash，请自行判断
+> 从本章开始，只在需要写文件时标注 `PowerShell`；其余 Git 命令默认直接执行。
 
 先在 main 建一个文件：
 ```powershell
@@ -274,6 +292,7 @@ git status
 git restore note.txt
 git status
 ```
+`git restore note.txt` 的含义是：放弃工作区里这个文件尚未暂存的修改，回到最近一次暂存或提交时的状态。
 
 ### 取消暂存
 
@@ -286,6 +305,7 @@ git status
 git restore --staged note.txt
 git status
 ```
+其中 `--staged` 表示“只从暂存区撤下来”，不会删除你工作区里已经改好的内容。
 
 ### 体验 reflog 救命
 
@@ -304,6 +324,11 @@ git reset --hard HEAD~1
 git log --oneline -n 3
 git reflog --oneline -n 5
 ```
+这里要特别小心：
+
+- `HEAD~1` 表示“当前提交的上一个提交”
+- `--hard` 会同时重置 `HEAD`、暂存区和工作区
+- 如果你有尚未提交的重要改动，`git reset --hard` 会直接把它们丢掉
 
 从 reflog 里找到刚才那个提交哈希，再恢复：
 
@@ -320,7 +345,204 @@ git log --oneline -n 3
 
 ---
 
-## 7. 30 分钟结束时，你必须会检查这 5 件事
+## 7. 常用场景与常用参数
+
+下面这一章不是新的主线练习，而是把你刚刚做过的动作，整理成今后最常遇到的本地场景速查。
+
+### 1. 我现在到底处于什么状态
+
+场景：刚打开仓库，不知道自己在哪个分支、有没有改动、最近历史长什么样。
+
+推荐命令：
+
+```bash
+git status
+git log --oneline --graph --decorate --all
+git branch -vv
+```
+
+参数说明：
+
+- `--oneline`：压缩显示提交，适合快速扫历史
+- `--graph`：画出分支走向
+- `--decorate`：显示分支名、标签、`HEAD`
+- `-vv`：让 `git branch` 显示每个分支指向的提交；如果配置了远端跟踪分支，也会一并显示
+
+典型用法：
+
+```bash
+git status
+git branch -vv
+```
+
+常见误区：不要只盯着文件列表看，先看 `git status`，再决定下一步操作。
+
+### 2. 我改了什么，哪些还没提交
+
+场景：你已经编辑过文件，但不确定改动目前在工作区、暂存区，还是都已经提交。
+
+推荐命令：
+
+```bash
+git diff
+git diff --cached
+```
+
+参数说明：
+
+- `git diff`：看“工作区相对暂存区”的改动
+- `--cached`：看“暂存区相对最新提交”的改动
+
+典型用法：
+
+```bash
+git diff
+git add note.txt
+git diff --cached
+```
+
+常见误区：`git diff` 没输出，不代表没改动，可能是你已经把改动暂存了。
+
+### 3. 我只想把这次要提交的内容放进去
+
+场景：你改了多个文件，但这次只想提交其中一部分。
+
+推荐命令：
+
+```bash
+git add note.txt
+git add .
+```
+
+参数说明：
+
+- `git add <file>`：只暂存指定文件
+- `.`：表示当前目录，把当前目录下能加入的改动一起加入暂存区
+
+典型用法：
+
+```bash
+git add note.txt
+git status
+```
+
+常见误区：`git add .` 很方便，但也容易把你没打算提交的文件一起放进暂存区。
+
+### 4. 我想正式保存这次修改
+
+场景：你已经确认暂存区内容没问题，准备形成一次正式提交。
+
+推荐命令：
+
+```bash
+git commit -m "docs: update note"
+git commit --amend --no-edit
+```
+
+参数说明：
+
+- `-m`：直接在命令行写提交说明
+- `--amend`：修改最近一次提交，常用于补文件或改提交说明
+- `--no-edit`：保留最近一次提交说明，不再打开编辑器让你修改文字
+
+典型用法：
+
+```bash
+git add note.txt
+git commit --amend --no-edit
+```
+
+常见误区：`--amend` 会改写最近一次提交，不要在已经推送并被别人依赖的提交上随便使用。
+
+### 5. 我想切分支、看分支、准备合并
+
+场景：你要开始一个新任务，或者想确认当前分支情况后再合并。
+
+推荐命令：
+
+```bash
+git switch -c feature/demo
+git switch main
+git branch -vv
+git merge feature/demo
+```
+
+参数说明：
+
+- `-c`：创建并切换到新分支
+- `-vv`：查看分支更详细的信息
+
+典型用法：
+
+```bash
+git branch -vv
+git switch main
+git merge feature/theme
+git status
+```
+
+常见误区：合并前先确认你当前站在目标分支上，例如“把功能分支合回 `main`”时，你应该先 `git switch main`。
+
+### 6. 我想删除或重命名文件
+
+场景：文件名写错了，或者某个文件已经不再需要。
+
+推荐命令：
+
+```bash
+git rm old.txt
+git rm --cached keep-local.txt
+git mv old-name.md new-name.md
+```
+
+参数说明：
+
+- `git rm <file>`：删除文件，并把“删除”记录进下一次提交
+- `--cached`：只取消 Git 跟踪，本地文件保留
+- `git mv <旧名> <新名>`：在 Git 视角下完成重命名
+
+典型用法：
+
+```bash
+git mv "3-Git初级联系.md" "3-Git初级练习.md"
+git status
+```
+
+常见误区：如果你只在文件管理器里删文件或改文件名，却没有把“删除/重命名”一起提交，远端就可能保留旧文件。
+
+### 7. 我改错了，想撤销或找回
+
+场景：你刚改坏了文件、暂存错了内容，或者把提交回退掉之后想找回来。
+
+推荐命令：
+
+```bash
+git restore note.txt
+git restore --staged note.txt
+git reset --hard HEAD~1
+git reflog --oneline -n 5
+```
+
+参数说明：
+
+- `--staged`：只处理暂存区
+- `--hard`：同时重置历史、暂存区和工作区
+- `HEAD~1`：当前提交的上一个提交
+- `-n 5`：只显示最近 5 条记录
+
+典型用法：
+
+```bash
+git reset --hard HEAD~1
+git reflog --oneline -n 5
+git reset --hard <要找回的提交哈希>
+```
+
+常见误区：`git restore` 主要用于文件层面，`git reset` 主要用于提交和指针层面，这两类命令不要混着理解。
+
+---
+
+## 8. 30 分钟结束时，你必须会检查这 5 件事
 
 每次操作前后，先看：
 
@@ -340,7 +562,7 @@ git branch -vv
 - 最近提交是什么？
 ---
 
-## 8. 你现在的熟练度指标
+## 9. 你现在的熟练度指标
 
 如果下面这些你都能独立完成，就已经即将新手期了：
 
