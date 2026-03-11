@@ -504,7 +504,7 @@ git mv old-name.md new-name.md
 典型用法：
 
 ```bash
-git mv "3-Git初级联系.md" "3-Git初级练习.md"
+git mv "练习草稿.md" "练习草稿-本地.md"
 git status
 ```
 
