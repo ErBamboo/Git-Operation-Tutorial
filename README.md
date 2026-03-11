@@ -16,7 +16,7 @@
    学会 `clone`、`fetch`、`pull`、`push`、跟踪分支和同步状态判断。
 6. [协作开发主流程](docs/6-Git协作开发主流程.md)
    建立多人协作中的功能分支、同步主线、冲突处理和 `merge` / `rebase` 判断。
-7. [Git fork、upstream 与贡献工作流](docs/7-Git fork、upstream与贡献工作流.md)
+7. [Git fork、upstream 与贡献工作流](docs/7-Git-fork、upstream与贡献工作流.md)
    理解 fork 型协作里的 `origin`、`upstream`、同步上游和发起贡献。
 8. [Git worktree 与并行开发](docs/8-Git-worktree与并行开发.md)
    处理主线、实验线、修复线以及“一人协调多个 AI 并行开发”的多上下文场景。
