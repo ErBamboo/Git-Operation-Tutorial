@@ -92,3 +92,5 @@
 - 远端分支指针
 
 一旦你按这个角度理解，Git 会突然变简单。
+
+在开始之前，或许你可以花 1-2 个小时玩一玩 [在线图形化Git教程](https://learngitbranching.js.org/?locale=zh_CN) ，以对Git在逻辑上有一个初步的了解。
