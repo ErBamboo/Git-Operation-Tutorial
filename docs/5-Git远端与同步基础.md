@@ -199,12 +199,48 @@ git log --oneline --graph --decorate --all
 
 ```bash
 git pull --ff-only
+git branch -vv
+git log --oneline --graph --decorate --all
 ```
 
 这里的 `--ff-only` 表示：
 
-- 只允许“快进式更新”
+- 只允许“快进式更新” (fast-forward)
 - 如果需要额外合并，直接报错，不偷偷帮你做复杂整合
+
+执行后通常可观察到：
+
+- 本地 `main` 追上了 `origin/main`
+- 没有额外产生新的 merge commit
+- 你的工作区只是被更新到了远端已经存在的那个提交
+
+### 什么是 fast-forward
+
+“快进”可以理解成：**当前分支只是把指针往前挪到了已有提交上**。
+
+比如刚才 `bob` 在本地还没更新前，关系大致是这样：
+
+```text
+A---B---C  origin/main
+    ^
+   main
+```
+
+执行 `git pull --ff-only` 之后，会变成：
+
+```text
+A---B---C  main, origin/main
+```
+
+这里发生的事情只有一件：
+
+- 本地 `main` 从 `B` 移动到了 `C`
+
+所以 fast-forward 的特点是：
+
+- 不会新建 merge commit
+- 不会改写旧提交
+- 只是把当前分支移动到更靠前的已有历史上
 
 所以在初学阶段，一个很稳妥的理解方式是：
 
@@ -227,6 +263,14 @@ git rebase
 
 所以，别把 `pull` 当成一个“单纯下载代码”的命令。
 
+顺手补一个小知识点：
+
+- `git pull` 和 `git merge` 都有 `--ff` / `--no-ff` / `--ff-only`
+- 它们都和“是否允许快进、是否保留 merge commit”有关
+- 这一篇你先只需要掌握 `git pull --ff-only`
+
+`git push` 不带这一组选项，但远端通常会拒绝会改写远端历史的 non-fast-forward push。这个问题后面讲协作和发布流时再展开。
+
 ### 常见问题：`refs/heads/master` 报错
 
 如果你在这里看到类似报错：
@@ -236,7 +280,7 @@ Your configuration specifies to merge with the ref 'refs/heads/master'
 from the remote, but no such ref was fetched.
 ```
 
-通常说明的不是 `git pull --ff-only` 本身有问题，而是：
+通常说明：
 
 - 你当前分支还在跟踪 `origin/master`
 - 但这个练习实际使用的是 `origin/main`
@@ -255,12 +299,22 @@ git fetch origin
 git switch -c main --track origin/main
 ```
 
+这里的 `--track` 表示：
+
+- 在创建本地分支 `main` 的同时，让它跟踪 `origin/main`
+- 建立跟踪关系后，`git branch -vv` 和 `git status` 才知道该和哪条远端分支比较
+- 默认的 `git pull` / `git push` 也会更清楚地围绕这条关系工作
+
+在这一篇里，可以先把“跟踪”理解成：**给本地分支指定一个默认对应的远端分支。**
+
 如果你的 Git 版本较老，也可以用：
 
 ```bash
 git fetch origin
 git checkout -b main origin/main
 ```
+
+这条旧写法在这里也会建立同样的跟踪关系。
 
 然后再确认一次：
 
@@ -274,11 +328,19 @@ git branch -vv
 - `git pull` 更新的是当前分支对应的工作区状态
 - 它不会“额外生成一个新文件夹”
 
-所以如果你在 `bob` 里没有看到新的 `readme.txt` 或文件内容变化，通常说明这次 `pull` 根本没有成功更新到正确的分支，而不是“快进更新没有生效”。
-
 ---
 
-## 5. 看懂“领先 / 落后 / 分叉”
+## 5. 看懂“领先 / 落后 / 分叉”，并把每种状态走完整
+
+这一节只做一件事：把远端同步里最常见的三种关系状态拆开看清楚。
+
+它们分别是：
+
+- 领先：本地有、远端无
+- 落后：远端有、本地无
+- 分叉：本地和远端各自都有独占提交
+
+### 1) 领先：本地有、远端无
 
 在 `bob` 里再做一个本地提交：
 
@@ -293,17 +355,29 @@ git branch -vv
 git status
 ```
 
-如果你还没推送，这时你通常会看到：
+此时通常会看到：
 
 - 本地 `main` 领先 `origin/main`
+
+这表示：
+
+- 新提交只存在于本地
+- 远端还没有这段历史
+
+这种状态最典型的处理方式是把本地历史推到远端：
 
 把它推上去：
 
 ```bash
 git push
+git branch -vv
 ```
 
-再回到 `alice`：
+推送完成后，`main` 和 `origin/main` 会重新回到同一条历史上。
+
+### 2) 落后：远端有、本地无
+
+切换回 `alice`：
 
 ```powershell
 cd $HOME\git-remote-lab\alice
@@ -314,16 +388,128 @@ git fetch origin
 git branch -vv
 ```
 
-这时 `alice` 会看到：
+此时通常会看到：
 
 - 本地 `main` 落后于 `origin/main`
 
-而“分叉”则表示：
+这表示：
 
-- 你本地有自己的提交
-- 远端也有你本地没有的提交
+- 远端已经有了新的提交
+- 本地还没有把这段历史接过来
 
-这种情况下，你已经不能把问题理解成“谁比较新”了，而必须开始处理“怎么整合两边的历史”。
+这种状态的典型处理方式是快进更新：
+
+```bash
+git pull --ff-only
+git branch -vv
+```
+
+执行完成后，`alice` 的 `main` 会再次和 `origin/main` 对齐。
+
+这就是“落后”场景最常见的处理路径：
+
+- 先 `fetch` 看清远端
+- 确认只是单纯落后
+- 再用 `git pull --ff-only` 做快进更新
+
+### 3) 分叉：本地和远端各自都有独占提交
+
+“分叉”不是单纯的领先，也不是单纯的落后，而是两边都已经各自前进了一步，这在多人协作开发的场景十分常见。
+
+为了单独观察这种状态，先在 `alice` 里创建一条专门用于演示的本地分支，并同样让它跟踪 `origin/main`，便于继续观察 ahead / behind 状态：
+
+```bash
+git switch -c demo/diverged --track origin/main
+```
+
+在 `PowerShell` 中输入：
+
+```powershell
+"line only in alice demo" | Add-Content readme.txt
+```
+
+```bash
+git add readme.txt
+git commit -m "docs: local only change on demo branch"
+git branch -vv
+```
+
+此时通常会看到：
+
+- `demo/diverged` 领先 `origin/main`
+
+这说明 `demo/diverged` 已经比远端多出一个本地提交。
+
+接着切换到 `bob`：
+
+```powershell
+cd $HOME\git-remote-lab\bob
+```
+
+在 `PowerShell` 中输入：
+
+```powershell
+"line from bob again" | Add-Content readme.txt
+```
+
+```bash
+git add readme.txt
+git commit -m "docs: update from bob again"
+git push
+```
+
+再切换回 `alice`：
+
+```powershell
+cd $HOME\git-remote-lab\alice
+```
+
+```bash
+git switch demo/diverged
+git fetch origin
+git branch -vv
+    git log --oneline --graph --decorate --all
+```
+
+此时通常可观察到一种新的状态：
+
+- 本地分支有自己的提交
+- `origin/main` 也有本地分支没有的提交
+- `demo/diverged` 相对 `origin/main` 同时表现为 ahead 和 behind
+
+这就进入了“分叉”状态：
+
+- 本地分支有自己的提交
+- 远端也有本地分支没有的提交
+
+在这种情况下，问题已经不能再被理解成“谁比较新”，而必须开始处理“怎么整合两边的历史”。
+
+可以直接验证一下：
+
+```bash
+git pull --ff-only
+```
+
+这一步会失败。原因是：
+
+- fast-forward 只适用于“本地只是单纯落后”的情况
+- 一旦本地和远端各自都有独占提交，分支指针就不能只靠往前移动解决问题
+
+这时就要进入真正的历史整合：
+
+- 要么 `merge`
+- 要么 `rebase`
+
+这两种方式下一篇和后续协作章节会专门展开。这里需要记住的是：
+
+**`--ff-only` 很适合帮助识别“这次同步到底是不是简单更新”，一旦它失败，通常就说明已经进入了更复杂的分叉场景。**
+
+为了让后续练习继续从干净主线开始，最后切回 `main`：
+
+```bash
+git switch main
+git pull --ff-only
+```
 
 ---
 
@@ -366,6 +552,7 @@ git branch -vv
 - 每次看分支关系时先看 `git branch -vv`
 - 不把 `pull` 当成“无脑更新”
 - 能先 `fetch` 看清远端状态，再决定怎么整合
+- 能分清“领先 / 落后 / 分叉”分别意味着什么
 - 第一次推新分支时明确写出 `git push -u origin <branch>`
 
 ---
@@ -376,10 +563,14 @@ git branch -vv
 
 - `origin` 和 `origin/main` 分别是什么
 - `fetch` 为什么不会直接修改当前分支
+- `--track` 建立的是什么关系
+- 什么叫 fast-forward
 - `pull --ff-only` 比直接 `pull` 稳在哪里
 - 本地“领先”和“落后”各自意味着什么
+- 为什么“分叉”时 `git pull --ff-only` 会失败
+- 为什么 `git branch -vv` 能显示领先 / 落后信息
 - 为什么新建分支后要先 `push -u`
 
 下一篇，就该进入真正的协作主流程了：
 
-**不是“我会不会 push”，而是“多个人怎么围绕同一个仓库稳定协作”。**
+**“多个人怎么围绕同一个仓库稳定协作”。**
