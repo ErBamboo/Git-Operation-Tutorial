@@ -40,16 +40,16 @@
 cd $HOME # 或其他你认为合适的路径
 mkdir git-remote-lab -Force
 cd git-remote-lab
-git init --bare server.git
+git init --bare --initial-branch=main server.git
 git clone .\server.git alice
 cd alice
-git switch -c main
+git switch main
 "hello remote" | Set-Content readme.txt
 git add readme.txt
 git commit -m "docs: init remote demo"
 git push -u origin main
 cd ..
-git clone .\server.git bob
+git clone --branch main .\server.git bob
 ```
 
 这里最关键的是：
@@ -57,6 +57,17 @@ git clone .\server.git bob
 - `server.git` 是一个 bare 仓库，可以把它理解成“服务器上的仓库”
 - `alice` 和 `bob` 是两个普通工作副本
 - `origin` 是 Git 给克隆来源起的默认远端名
+
+这里要特意说明一下：我们显式把 bare 仓库的初始分支固定成了 `main`。
+
+原因是不同 Git 环境里的默认分支名可能不一致。如果这里不固定，远端 `HEAD` 有可能仍然指向 `master`，而后面的练习又是围绕 `main` 展开的，这样 `bob` 克隆后就可能默认跟踪 `origin/master`，后面在 `git pull --ff-only` 那一步报错。
+
+如果你的 Git 版本较老，不支持 `--initial-branch`，可以改用下面这组命令达到同样效果：
+
+```bash
+git init --bare server.git
+git -C server.git symbolic-ref HEAD refs/heads/main
+```
 
 你现在已经有了一个最小可练习环境：
 
@@ -215,6 +226,55 @@ git rebase
 ```
 
 所以，别把 `pull` 当成一个“单纯下载代码”的命令。
+
+### 常见问题：`refs/heads/master` 报错
+
+如果你在这里看到类似报错：
+
+```text
+Your configuration specifies to merge with the ref 'refs/heads/master'
+from the remote, but no such ref was fetched.
+```
+
+通常说明的不是 `git pull --ff-only` 本身有问题，而是：
+
+- 你当前分支还在跟踪 `origin/master`
+- 但这个练习实际使用的是 `origin/main`
+
+这时你先看清当前状态：
+
+```bash
+git branch -vv
+git branch -a
+```
+
+如果你看到 `bob` 当前站在 `master`，或者它在跟踪 `origin/master`，就执行：
+
+```bash
+git fetch origin
+git switch -c main --track origin/main
+```
+
+如果你的 Git 版本较老，也可以用：
+
+```bash
+git fetch origin
+git checkout -b main origin/main
+```
+
+然后再确认一次：
+
+```bash
+git status
+git branch -vv
+```
+
+这里还要多记住一点：
+
+- `git pull` 更新的是当前分支对应的工作区状态
+- 它不会“额外生成一个新文件夹”
+
+所以如果你在 `bob` 里没有看到新的 `readme.txt` 或文件内容变化，通常说明这次 `pull` 根本没有成功更新到正确的分支，而不是“快进更新没有生效”。
 
 ---
 
