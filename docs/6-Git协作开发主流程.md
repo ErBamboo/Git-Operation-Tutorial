@@ -30,6 +30,39 @@
 
 如果你把这 5 步变成习惯，多数日常协作问题都会大幅减少。
 
+把这条主流程先压成一张分层图：
+
+```text
++--------------------------------------+
+| 第1层：远端主线 origin/main          |
+| 团队共享的最新主线                   |
++--------------------------------------+
+                  |
+                  | 1. fetch / (pull --ff-only)
+                  v
++--------------------------------------+
+| 第2层：本地主线 main                 |
+| 本地可信基线                         |
++--------------------------------------+
+                  |
+                  | 2. “切出”功能分支
+                  |    git switch -c feature/login
+                  v
++--------------------------------------+
+| 第3层：本地功能分支 feature/login    |
+| 在这条线里独立开发、提交、推送       |
++--------------------------------------+
+                  |
+                  | 3. 主线前进后，用 merge 或 rebase 整合
+                  v
++--------------------------------------+
+| 第4层：整合后的功能分支 / 回到 main  |
+| 功能完成后再进入合并或 PR            |
++--------------------------------------+
+```
+
+这张图表达的是：协作开发不是围绕一条线来回乱切，而是围绕“远端主线 -> 本地主线 -> 功能分支 -> 再整合”的层次展开。
+
 ---
 
 ## 1. 推荐工作流：始终围绕主线开功能分支
@@ -50,9 +83,42 @@ git switch -c feature/login
 - 把本地主线快进到最新
 - 从最新主线切一条功能线出来
 
+这里的“切出”沿用第 4 篇的定义：
+
+- 从当前 `main` 所在提交创建一条新分支
+- 然后立刻把 `HEAD` 切换到那条分支上继续工作
+
 这背后的原则是：
 
 **功能开发应该围绕“最新且可信的主线状态”开始，而不是围绕你几天前留下的某个旧分支开始。**
+
+把这个过程拆开看，会更直观。
+
+同步主线完成后：
+
+```text
+远端主线:   origin/main -> C
+本地主线:   main        -> C
+HEAD:       HEAD        -> main
+```
+
+执行 `git switch -c feature/login` 后：
+
+```text
+远端主线:   origin/main    -> C
+本地主线:   main           -> C
+功能分支:   feature/login  -> C
+HEAD:       HEAD           -> feature/login
+```
+
+功能分支产生新提交后：
+
+```text
+远端主线:   origin/main    -> C
+本地主线:   main           -> C
+功能分支:   feature/login  -> D
+HEAD:       HEAD           -> feature/login
+```
 
 接下来你就在功能分支上正常提交：
 
@@ -77,6 +143,30 @@ git push -u origin feature/login
 
 - 你正在 `feature/login` 上工作
 - 别人已经把新的提交推到了 `main`
+
+这时至少要看懂两个层面。
+
+指针关系：
+
+```text
+远端主线:   origin/main    -> D
+本地主线:   main           -> C
+功能分支:   feature/login  -> F
+HEAD:       HEAD           -> feature/login
+```
+
+放回提交历史里，大致是：
+
+```text
+A---B---C---D
+         ^   ^
+         |   origin/main
+         main
+          \
+           E---F
+               ^
+               feature/login, HEAD
+```
 
 这时正确的第一步不是盲目 `pull`，而是先看清远端发生了什么：
 
@@ -114,6 +204,20 @@ git rebase origin/main
 - 保留两条线各自的历史
 - 新建一个“整合结果”的提交
 
+图形上通常长这样：
+
+```text
+执行 `git merge origin/main` 后：
+
+origin/main    -> D
+feature/login  -> M
+HEAD           -> feature/login
+
+A---B---C---D
+         \   \
+          E---F---M
+```
+
 它的优点是：
 
 - 历史真实
@@ -129,6 +233,18 @@ git rebase origin/main
 你可以把 `rebase` 理解成：
 
 - 把你这条线上的提交“搬到新的基底上重放一遍”
+
+图形上通常会变成：
+
+```text
+执行 `git rebase origin/main` 后：
+
+origin/main    -> D
+feature/login  -> F'
+HEAD           -> feature/login
+
+A---B---C---D---E'---F'
+```
 
 它的优点是：
 

@@ -96,6 +96,22 @@ git log --oneline --graph --decorate --all
 - `origin/main`：你上次知道的“远端 main 指到了哪里”
 - `main`：你本地正在工作的分支
 
+把它们放在一起看，可以先建立这样一张关系图：
+
+```text
+远端仓库 server.git:      A---B
+                            ^
+                           main
+
+alice 对远端的本地记录:  A---B
+                            ^
+                       origin/main
+
+alice 当前本地分支:      A---B
+                            ^
+                       main, HEAD
+```
+
 如果 `main` 设置了上游分支，那么它就会“跟踪” `origin/main`。
 
 这也是为什么 `git branch -vv` 很重要。它会直接告诉你：
@@ -127,6 +143,38 @@ git push -u origin main
 
 - 把你的本地历史同步给远端
 - 告诉 Git：以后 `main` 默认对应 `origin/main`
+
+如果把 `push` 看成“移动远端分支指针”，它的效果大致是这样：
+
+```text
+执行前：
+
+alice 本地分支:          A---B---C
+                                ^
+                           main, HEAD
+
+alice 已知远端状态:      A---B
+                            ^
+                       origin/main
+
+远端仓库 server.git:     A---B
+                            ^
+                           main
+
+执行 `git push origin main` 后：
+
+alice 本地分支:          A---B---C
+                                ^
+                           main, HEAD
+
+alice 已知远端状态:      A---B---C
+                                ^
+                           origin/main
+
+远端仓库 server.git:     A---B---C
+                                ^
+                               main
+```
 
 以后再推同一条分支时，通常就可以直接写：
 
@@ -190,6 +238,38 @@ git log --oneline --graph --decorate --all
 
 - `origin/main` 已经前进了
 - 但你本地 `main` 还没动
+
+这时对象变化可以画成：
+
+```text
+执行前 `git fetch origin`：
+
+远端仓库 server.git:     A---B---C
+                                ^
+                               main
+
+bob 已知远端状态:        A---B
+                            ^
+                       origin/main
+
+bob 当前本地分支:        A---B
+                            ^
+                       main, HEAD
+
+执行后：
+
+远端仓库 server.git:     A---B---C
+                                ^
+                               main
+
+bob 已知远端状态:        A---B---C
+                                ^
+                           origin/main
+
+bob 当前本地分支:        A---B
+                            ^
+                       main, HEAD
+```
 
 这就是 `fetch` 的本质：
 
@@ -307,6 +387,12 @@ git switch -c main --track origin/main
 
 在这一篇里，可以先把“跟踪”理解成：**给本地分支指定一个默认对应的远端分支。**
 
+```text
+本地分支            默认跟踪对象
+main          ----> origin/main
+demo/diverged ----> origin/main
+```
+
 如果你的 Git 版本较老，也可以用：
 
 ```bash
@@ -359,6 +445,14 @@ git status
 
 - 本地 `main` 领先 `origin/main`
 
+```text
+A---B---C
+    ^   ^
+    |   main, HEAD
+    |
+ origin/main
+```
+
 这表示：
 
 - 新提交只存在于本地
@@ -391,6 +485,14 @@ git branch -vv
 此时通常会看到：
 
 - 本地 `main` 落后于 `origin/main`
+
+```text
+A---B---C
+    ^   ^
+    |   origin/main
+    |
+  main, HEAD
+```
 
 这表示：
 
@@ -468,7 +570,7 @@ cd $HOME\git-remote-lab\alice
 git switch demo/diverged
 git fetch origin
 git branch -vv
-    git log --oneline --graph --decorate --all
+git log --oneline --graph --decorate --all
 ```
 
 此时通常可观察到一种新的状态：
@@ -477,12 +579,20 @@ git branch -vv
 - `origin/main` 也有本地分支没有的提交
 - `demo/diverged` 相对 `origin/main` 同时表现为 ahead 和 behind
 
+```text
+      C  demo/diverged, HEAD
+     /
+A---B
+     \
+      D  origin/main
+```
+
 这就进入了“分叉”状态：
 
 - 本地分支有自己的提交
 - 远端也有本地分支没有的提交
 
-在这种情况下，问题已经不能再被理解成“谁比较新”，而必须开始处理“怎么整合两边的历史”。
+在这种情况下，问题已经不能再被理解成“谁比较新”，而必须开始处理“怎么整合两边的历史”。（你可以理解为，因为分叉了，有两条路可以走，所以 git 不知道下一步该怎么走了）
 
 可以直接验证一下：
 

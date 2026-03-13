@@ -7,6 +7,19 @@
 >   - 分支
 >   - 合并 / 冲突
 >   - 回退 / 找回
+
+这一篇只做一件事：
+
+- 把第 3 篇里那套模型，先放到“单仓库内部”做纵向练习
+
+所以这里先不引入远端，不引入协作，也不引入 fork。
+先只看最基础的一条线：
+
+- 工作区
+- 暂存区
+- 提交
+- 分支和 `HEAD` 在本地怎么变化
+
 ---
 
 ## 0. 安全准备：单独建一个练习目录
@@ -128,6 +141,33 @@ git log --oneline --graph --decorate --all
 git switch -c feature/theme
 ```
 这里的 `-c` 表示“创建并切换到新分支”；如果没有 `-c`，`git switch` 只负责切换，不负责创建。
+
+在这套教程里，“切出一条分支”可以先理解成：
+
+- 以当前所在提交为基线，新建一个分支名
+- 然后立刻把 `HEAD` 切换到那条分支上继续工作
+
+所以 `git switch -c feature/theme` 可以直接读成：
+
+- 从当前 `main` 所在提交切出 `feature/theme`
+- 并立即切换到 `feature/theme`
+
+它的变化大致是：
+
+```text
+执行前：
+
+提交历史: A---B
+分支指针: main -> B
+HEAD:     HEAD -> main
+
+执行 `git switch -c feature/theme` 后：
+
+提交历史: A---B
+分支指针: main -> B
+         feature/theme -> B
+HEAD:     HEAD -> feature/theme
+```
 
 在 `PowerShell` 中写入一个新文件：
 ```powershell
