@@ -112,6 +112,16 @@ alice 当前本地分支:      A---B
                        main, HEAD
 ```
 
+把常用观察命令放进这张图里看，会更容易理解它们到底在看什么：
+
+```text
+`git branch -vv` 主要在看：
+main, HEAD  ----比较---->  origin/main
+
+`git status` 主要在看：
+当前分支 + 工作区/暂存区 是否干净
+```
+
 如果 `main` 设置了上游分支，那么它就会“跟踪” `origin/main`。
 
 这也是为什么 `git branch -vv` 很重要。它会直接告诉你：
@@ -175,6 +185,16 @@ alice 已知远端状态:      A---B---C
                                 ^
                                main
 ```
+
+这里真正变化的是：
+
+- 远端仓库里的 `main`
+- 你本地记录的 `origin/main`
+
+这里没变化的是：
+
+- 你当前本地分支 `main` 仍然停在 `C`
+- `HEAD` 仍然站在 `main` 上
 
 以后再推同一条分支时，通常就可以直接写：
 
@@ -275,6 +295,8 @@ bob 当前本地分支:        A---B
 
 **只更新你对远端状态的认知，不直接改你当前工作的本地分支。**
 
+换句话说，`git fetch origin` 真正移动的是 `origin/main`，而不是你当前正在工作的 `main`。
+
 再执行：
 
 ```bash
@@ -298,18 +320,38 @@ git log --oneline --graph --decorate --all
 
 “快进”可以理解成：**当前分支只是把指针往前挪到了已有提交上**。
 
-比如刚才 `bob` 在本地还没更新前，关系大致是这样：
+比如刚才 `bob` 已经执行完 `git fetch origin`，但还没 `pull` 时，关系大致是这样：
 
 ```text
-A---B---C  origin/main
-    ^
-   main
+执行前 `git pull --ff-only`：
+
+远端仓库 server.git:     A---B---C
+                                ^
+                               main
+
+bob 已知远端状态:        A---B---C
+                                ^
+                           origin/main
+
+bob 当前本地分支:        A---B
+                            ^
+                       main, HEAD
 ```
 
 执行 `git pull --ff-only` 之后，会变成：
 
 ```text
-A---B---C  main, origin/main
+远端仓库 server.git:     A---B---C
+                                ^
+                               main
+
+bob 已知远端状态:        A---B---C
+                                ^
+                           origin/main
+
+bob 当前本地分支:        A---B---C
+                                ^
+                           main, HEAD
 ```
 
 这里发生的事情只有一件：
@@ -388,9 +430,12 @@ git switch -c main --track origin/main
 在这一篇里，可以先把“跟踪”理解成：**给本地分支指定一个默认对应的远端分支。**
 
 ```text
-本地分支            默认跟踪对象
-main          ----> origin/main
-demo/diverged ----> origin/main
+执行 `git switch -c main --track origin/main` 后：
+
+本地分支:   main -> C
+远端记录:   origin/main -> C
+跟踪关系:   main ----> origin/main
+HEAD:       HEAD -> main
 ```
 
 如果你的 Git 版本较老，也可以用：
@@ -453,6 +498,8 @@ A---B---C
  origin/main
 ```
 
+这通常是刚执行完本地 `git commit`、但还没 `git push` 的结果。
+
 这表示：
 
 - 新提交只存在于本地
@@ -493,6 +540,8 @@ A---B---C
     |
   main, HEAD
 ```
+
+这通常是先看到远端有新提交，再执行 `git fetch origin` 后暴露出来的状态。
 
 这表示：
 
@@ -586,6 +635,8 @@ A---B
      \
       D  origin/main
 ```
+
+这通常是“本地先做了一次提交，然后远端也前进了一次，最后本地再 `fetch`”之后得到的结果。
 
 这就进入了“分叉”状态：
 

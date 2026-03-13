@@ -94,7 +94,7 @@ git switch -c feature/login
 
 把这个过程拆开看，会更直观。
 
-同步主线完成后：
+执行 `git pull --ff-only` 让本地主线追上远端后：
 
 ```text
 远端主线:   origin/main -> C
@@ -146,7 +146,13 @@ git push -u origin feature/login
 
 这时至少要看懂两个层面。
 
-指针关系：
+先执行：
+
+```bash
+git fetch origin
+```
+
+执行 `git fetch origin` 后，指针关系会变成：
 
 ```text
 远端主线:   origin/main    -> D
@@ -168,10 +174,11 @@ A---B---C---D
                feature/login, HEAD
 ```
 
-这时正确的第一步不是盲目 `pull`，而是先看清远端发生了什么：
+这一步最关键的是：远端主线的最新位置已经被记录到了 `origin/main`，但你当前工作的 `feature/login` 还没被改动。
+
+这时正确的下一步不是盲目 `pull`，而是先看清远端发生了什么：
 
 ```bash
-git fetch origin
 git log --oneline --graph --decorate --all
 ```
 
@@ -207,7 +214,17 @@ git rebase origin/main
 图形上通常长这样：
 
 ```text
-执行 `git merge origin/main` 后：
+执行前 `git merge origin/main`：
+
+origin/main    -> D
+feature/login  -> F
+HEAD           -> feature/login
+
+A---B---C---D
+         \
+          E---F
+
+执行后：
 
 origin/main    -> D
 feature/login  -> M
@@ -217,6 +234,15 @@ A---B---C---D
          \   \
           E---F---M
 ```
+
+这里最值得看清的是：
+
+- `D` 是主线原本就已经存在的提交
+- `E`、`F` 是功能分支原本就已经存在的提交
+- `M` 才是 merge 新生成的整合提交
+- `M` 会同时把 `F` 和 `D` 作为自己的父提交
+
+所以 merge 不是“把 `F` 变成汇合节点”，而是“在 `F` 之后再生成一个新的汇合节点 `M`”。
 
 它的优点是：
 
@@ -237,7 +263,17 @@ A---B---C---D
 图形上通常会变成：
 
 ```text
-执行 `git rebase origin/main` 后：
+执行前 `git rebase origin/main`：
+
+origin/main    -> D
+feature/login  -> F
+HEAD           -> feature/login
+
+A---B---C---D
+         \
+          E---F
+
+执行后：
 
 origin/main    -> D
 feature/login  -> F'
@@ -245,6 +281,12 @@ HEAD           -> feature/login
 
 A---B---C---D---E'---F'
 ```
+
+这里真正发生的是：
+
+- 功能分支上原来的 `E`、`F` 不会原地改写
+- Git 会把它们的修改效果重新播放成新的 `E'`、`F'`
+- 当前分支最终站到 `F'` 上，而不是原来的 `F` 上
 
 它的优点是：
 
@@ -283,6 +325,29 @@ git rebase origin/main
 ```
 
 如果中途出现冲突，Git 会停下来。
+
+可以把这个过程先理解成下面这张小流程图：
+
+```text
+执行 `git rebase origin/main`
+          |
+          v
+Git 开始把本地提交逐个重放到新基线上
+          |
+          v
+如果遇到冲突，流程暂停
+工作区: 出现冲突标记
+          |
+      +---+---+
+      |       |
+      v       v
+git add   git rebase --abort
+<file>        放弃本次重放
+  |
+  v
+git rebase --continue
+继续重放后续提交
+```
 
 这时你的处理步骤通常是：
 

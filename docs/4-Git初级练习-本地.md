@@ -74,6 +74,26 @@ git status
 ```
 这里的 `note.txt` 表示“只暂存这个文件”，避免你在刚开始练习时一次性把别的改动也带进去。
 
+如果把 `git add note.txt` 看成“把当前文件快照送进暂存区”，它的效果大致是：
+
+```text
+执行前：
+
+工作区:     note.txt -> "hello git"
+暂存区:     (空)
+提交历史:   (空)
+分支/HEAD:  main, HEAD -> 尚无提交
+
+执行 `git add note.txt` 后：
+
+工作区:     note.txt -> "hello git"
+暂存区:     note.txt -> "hello git"
+提交历史:   (空)
+分支/HEAD:  main, HEAD -> 尚无提交
+```
+
+这里变化的是：`note.txt` 被放进了暂存区；还没变化的是：提交历史、分支指针和 `HEAD`。
+
 提交：
 ```bash
 git commit -m "feat: add note"
@@ -92,6 +112,26 @@ git log --oneline --graph --decorate --all
 
 - `working tree clean`
 - 历史里出现 1 个提交
+
+如果把 `git commit -m "feat: add note"` 看成“把暂存区正式做成一个提交对象”，它的效果大致是：
+
+```text
+执行前：
+
+工作区:     note.txt -> "hello git"
+暂存区:     note.txt -> "hello git"
+提交历史:   (空)
+分支/HEAD:  main, HEAD -> 尚无提交
+
+执行 `git commit -m "feat: add note"` 后：
+
+工作区:     note.txt -> "hello git"
+暂存区:     与最新提交一致
+提交历史:   A
+分支/HEAD:  main, HEAD -> A
+```
+
+这里真正新产生的是提交对象 `A`；同时前移的是当前分支和 `HEAD`。
 
 你要记住：
 
@@ -117,6 +157,31 @@ git add note.txt
 git diff --cached
 git status
 ```
+这时最值得看清的是：`git diff` 和 `git diff --cached` 看的不是同一个范围。
+
+```text
+在执行 `git add note.txt` 之前：
+
+工作区 note.txt:  "hello git\nline 2"
+暂存区 note.txt:  "hello git"
+最新提交 A:       "hello git"
+
+`git diff`           看 工作区  vs 暂存区
+`git diff --cached`  看 暂存区  vs 最新提交
+```
+
+执行 `git add note.txt` 后：
+
+```text
+工作区 note.txt:  "hello git\nline 2"
+暂存区 note.txt:  "hello git\nline 2"
+最新提交 A:       "hello git"
+
+这时：
+- `git diff` 通常已经没有这部分差异了
+- `git diff --cached` 会显示“准备提交的变化”
+```
+
 这里要刻意区分：
 
 - `git diff` 默认看“工作区”和“暂存区”的差异
@@ -198,6 +263,28 @@ git log --oneline --graph --decorate --all
 git merge feature/theme
 git log --oneline --graph --decorate --all
 ```
+这一步最容易误解成“把功能分支整个复制回来”，但 `merge` 真正做的是“保留两边原历史，再额外生成一个整合结果”。
+
+```text
+执行前 `git merge feature/theme`：
+
+A---B---D  main, HEAD
+     \
+      C    feature/theme
+
+执行后：
+
+A---B---D---M  main, HEAD
+     \     /
+      C---/   feature/theme
+```
+
+这里要看懂三件事：
+
+- `C` 和 `D` 都是 merge 之前就已经存在的提交
+- `M` 才是 merge 新生成的整合提交
+- merge 不会把旧提交改掉，它是在旧历史之上再补一个汇合点
+
 你现在应该理解：
 
 - 分支不是复制仓库
@@ -254,6 +341,20 @@ Get-Content app.txt
 ```
 
 你会看到冲突标记。手工改成你要的结果，例如：
+
+```text
+执行 `git merge feature/conflict` 后（冲突尚未解决）：
+
+A---B---C---E  main, HEAD
+         \
+          D    feature/conflict
+
+工作区: app.txt = 同时包含两边内容和冲突标记
+暂存区: Git 还没有得到最终整合结果
+下一步: 手工编辑 -> git add app.txt -> git commit
+```
+
+这一步的关键是：Git 已经知道“两条线要整合”，但它还不知道最终文件应该长什么样，所以不会直接替你生成 merge commit。
 
 ```powershell
 @"
@@ -410,6 +511,22 @@ git status
 ```
 `git restore note.txt` 的含义是：放弃工作区里这个文件尚未暂存的修改，回到最近一次暂存或提交时的状态。
 
+```text
+执行前：
+
+工作区 note.txt:  已提交内容 + temp line
+暂存区 note.txt:  已提交内容
+最新提交:         已提交内容
+
+执行 `git restore note.txt` 后：
+
+工作区 note.txt:  已提交内容
+暂存区 note.txt:  已提交内容
+最新提交:         已提交内容
+```
+
+这里变化的是工作区；暂存区和提交历史都没有变化。
+
 ### 取消暂存
 
 ```powershell
@@ -422,6 +539,22 @@ git restore --staged note.txt
 git status
 ```
 其中 `--staged` 表示“只从暂存区撤下来”，不会删除你工作区里已经改好的内容。
+
+```text
+执行前：
+
+工作区 note.txt:  已提交内容 + staged line
+暂存区 note.txt:  已提交内容 + staged line
+最新提交:         已提交内容
+
+执行 `git restore --staged note.txt` 后：
+
+工作区 note.txt:  已提交内容 + staged line
+暂存区 note.txt:  已提交内容
+最新提交:         已提交内容
+```
+
+这里变化的是暂存区；工作区里你刚写好的内容仍然保留。
 
 ### 体验 reflog 救命
 
@@ -440,6 +573,25 @@ git reset --hard HEAD~1
 git log --oneline -n 3
 git reflog --oneline -n 5
 ```
+如果把 `git reset --hard HEAD~1` 看成“把分支、暂存区和工作区一起退回上一个提交”，它的效果大致是：
+
+```text
+执行前：
+
+提交历史:   A---B
+分支/HEAD:  main, HEAD -> B
+工作区:     与 B 一致
+暂存区:     与 B 一致
+
+执行 `git reset --hard HEAD~1` 后：
+
+提交历史:   A---B
+分支/HEAD:  main, HEAD -> A
+工作区:     与 A 一致
+暂存区:     与 A 一致
+reflog:     仍然记得 B 刚刚还是 HEAD
+```
+
 这里要特别小心：
 
 - `HEAD~1` 表示“当前提交的上一个提交”
@@ -458,6 +610,8 @@ git log --oneline -n 3
 - restore 处理文件
 - reset 处理历史/指针
 - reflog 是你的后悔药
+
+这里再多记一层：`git reflog` 看的不是“正式提交历史长什么样”，而是“`HEAD` 和分支指针最近走过哪些位置”。
 
 ---
 
