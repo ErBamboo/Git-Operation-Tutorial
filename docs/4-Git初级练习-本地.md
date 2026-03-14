@@ -144,6 +144,7 @@ git log --oneline --graph --decorate --all
 
 继续改文件：
 在 `PowerShell` 中输入以下命令：
+
 ```powershell
 "line 2" | Add-Content note.txt
 ```
@@ -157,7 +158,7 @@ git add note.txt
 git diff --cached
 git status
 ```
-这时最值得看清的是：`git diff` 和 `git diff --cached` 看的不是同一个范围。
+这时得分清的是：`git diff` 和 `git diff --cached` 看的不是同一个范围。
 
 ```text
 在执行 `git add note.txt` 之前：
@@ -196,6 +197,72 @@ git log --oneline --graph --decorate --all
 
 - `git diff` 看的是“还没暂存的改动”
 - `git diff --cached` 看的是“已经暂存、准备提交的改动”
+
+### 补充：怎么看 `git diff` 的输出
+
+上面已经知道了 `git diff` 在“看谁和谁比”。
+
+再往前走一步，还应该知道它的输出长什么样。以后不管你是在看工作区、暂存区，还是在比较两条分支，`diff` 的基本结构都还是这一套。
+
+如果现在执行 `git diff --cached`，代表性输出会接近这样：
+
+```text
+diff --git a/note.txt b/note.txt
+--- a/note.txt
++++ b/note.txt
+@@ -1 +1,2 @@
+ hello git
++line 2
+```
+
+这里最值得先看懂的是这几行：
+
+- `diff --git a/note.txt b/note.txt`
+  表示下面这一段变化发生在 `note.txt`
+- `--- a/note.txt`
+  表示旧版本这一侧是谁
+- `+++ b/note.txt`
+  表示新版本这一侧是谁
+- `@@ -1 +1,2 @@`
+  表示下面这一个变化片段发生在文件的哪一段位置
+
+再看变化正文：
+
+- 前面带空格的行
+  表示这行内容是上下文，本身没有变化
+- 前面带 `+` 的行
+  表示这行是新增内容
+- 前面带 `-` 的行
+  表示这行是旧版本里有、现在被删掉或替换掉的内容
+
+所以这段输出读成人话就是：
+
+- `note.txt` 被改了
+- 原来的 `hello git` 还在
+- 新增了一行 `line 2`
+
+还有一种你后面很快会遇到的形状，是“新增文件”：
+
+```text
+diff --git a/report.txt b/report.txt
+--- /dev/null
++++ b/report.txt
+@@ -0,0 +1 @@
++report view: card
+```
+
+这里的关键点是：
+
+- `--- /dev/null`
+  表示旧版本这一侧根本没有这个文件
+- `+++ b/report.txt`
+  表示新版本这一侧新增了 `report.txt`
+
+也就是说，当你看到 `/dev/null` 时，通常可以先把它理解成：
+
+**这次比较里，有一边原本没有这个文件。**
+
+后面到了远端、分支和 `worktree` 的场景，`git diff` 仍然复用这套读法。变化的不是输出结构，而是“谁和谁在比较”。
 
 ---
 
